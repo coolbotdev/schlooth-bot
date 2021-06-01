@@ -1,0 +1,14 @@
+aiohttp
+APScheduler
+async-timeout
+chardet
+discord.py
+emoji
+multidict
+pytz
+six
+tzlocal
+websockets
+discord.py[voice]
+datetime
+lxml

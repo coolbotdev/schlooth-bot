@@ -1,0 +1,14 @@
+[
+    {
+        "type": "Fill In",
+        "desc": "Fill in the blank!",
+        "prompt": "Tyler is a _ _ _ _ smurf",
+        "answer": "chad"
+    },
+    {
+        "type": "Reverse",
+        "desc": "Reverse the word below.",
+        "prompt": "smurfing",
+        "answer": "gnifrums"
+    }
+]

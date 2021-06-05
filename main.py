@@ -9,6 +9,7 @@ from datetime import datetime
 import aiohttp
 import json
 import asyncio
+import math
 # from discord import FFmpegPCMAudio
 # from youtube_dl import YoutubeDL
 # from discord.utils import get
@@ -17,13 +18,14 @@ import string
 # import chat_exporter
 # from discord.ext import commands
 # import io
+from discord.ext import commands
 from discord_components import DiscordComponents, Button, ButtonStyle, InteractionType
 
 intents = discord.Intents.default()
 intents.members = True
 
 converter = MemberConverter()
-bot = Bot(command_prefix='s!', intents=intents)
+bot = Bot(command_prefix='s.', intents=intents)
 TOKEN = os.getenv("TOKEN")
 
 @bot.event
@@ -217,8 +219,8 @@ async def profile(ctx, profile="none"):
       except ZeroDivisionError:
         percent_world_correct = 0  
       embedVar.add_field(name="Chemistry Regents Review Stats", value=f"{str(profile_data[i]['Correct'])}/{str(profile_data[i]['Total'])} ({str(round(percent_correct, 2))}%)", inline=False)
-      embedVar.set_thumbnail(url=profile_data[i]['Avatar URL'])
       embedVar.add_field(name="AP World Review Stats", value=f"{str(profile_data[i]['WorldCorrect'])}/{str(profile_data[i]['WorldTotal'])} ({str(round(percent_world_correct, 2))}%)", inline=False)
+      embedVar.add_field(name="Balance", value=f"{profile_data[i]['Balance']} schlucks", inline=False)
       embedVar.set_thumbnail(url=profile_data[i]['Avatar URL'])
       await ctx.send(embed=embedVar)
       found = 1
@@ -237,8 +239,9 @@ async def profile(ctx, profile="none"):
         percent_correct = (profile_data[i]['Correct']/profile_data[i]['Total']) * 100 
       except ZeroDivisionError:
         percent_correct = 0
-      embedVar.add_field(name="Lifetime Stats", value=f"{str(profile_data[i]['Correct'])}/{str(profile_data[i]['Total'])} ({str(round(percent_correct, 2))}%)", inline=False)
-      embedVar.set_thumbnail(url=ctx.author.avatar_url)
+      embedVar.add_field(name="Chemistry Regents Review Stats", value=f"{str(profile_data[i]['Correct'])}/{str(profile_data[i]['Total'])} ({str(round(percent_correct, 2))}%)", inline=False)
+      embedVar.add_field(name="AP World Review Stats", value=f"{str(profile_data[i]['WorldCorrect'])}/{str(profile_data[i]['WorldTotal'])} ({str(round(percent_world_correct, 2))}%)", inline=False)
+      embedVar.set_thumbnail(url=profile_data[i]['Avatar URL'])
       await ctx.send(embed=embedVar)
   try:
     print(found_indices[1])
@@ -974,7 +977,7 @@ async def spam(ctx, *params):
     for i in range(5):
         await ctx.send(msg)
   
-@bot.command(name='leaderboard', help="Displays the global leaderboard for s!regents", aliases=['lb', 'leader'])
+@bot.command(name='leaderboard', help="Displays the global leaderboards", aliases=['lb', 'leader'])
 async def lb(ctx, *params):
   param = ""
   for thing in params:
@@ -984,7 +987,7 @@ async def lb(ctx, *params):
     profile_data = json.load(f)
   percentages = {}
   try:
-    if(str(params[0]).lower() in ['world', 'chem', 'apworld', 'chemistry']):
+    if(str(params[0]).lower() in ['world', 'chem', 'apworld', 'chemistry', 'bal', 'money', 'rich', 'schlucks']):
       if(str(params[0]).lower() == 'world' or str(params[0]).lower() == 'apworld'):
         for i in range(len(profile_data)):
           try:
@@ -998,6 +1001,22 @@ async def lb(ctx, *params):
         place = 1
         for key in sorted_percentages:
           msg += str(place) + ". " + key + " (" + str(round(sorted_percentages[key], 2)) + "%)\n"
+          place += 1
+        embedVar.add_field(name="Placements", value=msg, inline=False)
+        await ctx.send(embed=embedVar)
+      elif(str(params[0]).lower() == 'bal' or str(params[0]).lower() == 'money' or str(params[0]).lower() == 'rich' or str(params[0]).lower() == 'schlucks'):
+        for i in range(len(profile_data)):
+          try:
+            schlucks = profile_data[i]['Balance']
+          except ZeroDivisionError:
+            schlucks = 0
+          percentages[str(profile_data[i]['Name'])] = schlucks
+        embedVar = discord.Embed(title="Richest Users", timestamp=datetime.utcnow(), color=0x00ff00)
+        sorted_percentages = {k: v for k, v in sorted(percentages.items(), key=lambda item: item[1], reverse=True)} 
+        msg = ""
+        place = 1
+        for key in sorted_percentages:
+          msg += str(place) + ". " + key + " (" + str(round(sorted_percentages[key], 2)) + " schlucks)\n"
           place += 1
         embedVar.add_field(name="Placements", value=msg, inline=False)
         await ctx.send(embed=embedVar)
@@ -1488,22 +1507,152 @@ async def addtrivia(ctx, *params):
     json.dump(question_data, json_file)
   await ctx.send(f"{ctx.author.mention}, your question was successfully added!")
 
-@bot.command(name="button")
-async def button(ctx):
-  await ctx.channel.send(
-      "Content",
-      components=[
-          Button(style=ButtonStyle.blue, label="Blue"),
-          Button(style=ButtonStyle.red, label="Red"),
-          Button(style=ButtonStyle.URL, label="look at my cool website", url="https://www.max49.cf/"),
-      ],
-  )
+@bot.command(name="bal", aliases=['balance', 'money'])
+async def bal(ctx, profile="none"):
+  if profile == "none":
+    param = ""
+  else:
+    param = profile
+  print(f"{ctx.author.name}: {'s!bal'} "+ str(param))
+  with open('profiles.json') as f:
+      profile_data = json.load(f)
+  if(profile != "none"):
+    uid = profile
+    try:
+      uid = int(uid)
+    except ValueError:
+      uid = profile
+  else:
+    uid = ctx.author.id
+  found = 0
+  for i in range(len(profile_data)):
+    user_mention = f"<@!{profile_data[i]['ID']}>"
+    if(profile_data[i]['ID'] == uid or profile_data[i]['Name'] == uid or profile_data[i]['Nick'] == uid or profile_data[i]['Tag'] == uid or user_mention == uid):
+      found = 1
+      embedVar = discord.Embed(title=f"{profile_data[i]['Name']}'s balance", timestamp=datetime.utcnow(), color=0x00C3FF)
+      embedVar.add_field(name="Balance", value=f"{profile_data[i]['Balance']} schlucks", inline=False)
+      await ctx.reply(embed=embedVar)
+  if(found == 0):
+    await ctx.send("No profile found!")
+  with open('profiles.json', 'w') as json_file:
+    json.dump(profile_data, json_file)
+  
 
-  res = await bot.wait_for("button_click")
-  if res.channel == ctx.channel:
-      await res.respond(
-          type=InteractionType.ChannelMessageWithSource,
-          content=f'{res.component.label} clicked'
-      )
+@bot.command(name="updateprofiles")
+async def update(ctx):
+  with open('profiles.json') as f:
+    profiles = json.load(f)
+  for i in range(len(profiles)):
+    profiles[i]['Balance'] = 0
+  for i in range(len(profiles)):
+    profiles[i]['Job'] = ""
+  for i in range(len(profiles)):
+    profiles[i]['Salary'] = 0
+  with open('profiles.json', 'w') as json_file:
+    json.dump(profiles, json_file)
+  await ctx.reply("Profiles successfully updated!")
+
+@bot.command(name="work", help="work")
+@commands.cooldown(1, 3600, commands.BucketType.user)
+async def work(ctx, *params):
+  param = ""
+  for thing in params:
+    param += str(thing) + " "
+  print(f"{ctx.author.name}: {'s!work'} "+ str(param))
+  with open('profiles.json') as f:
+    profiles = json.load(f)
+  try:
+    with open('work/jobs.json') as f:
+      jobs = json.load(f)
+    job_list = []
+    for thing in jobs:
+      for key, value in thing.items():
+        if(key == "name"):
+          job_list.append(value)
+    print(job_list)
+    if(params[0] == "list"):
+      embedVar = discord.Embed(title="Currently Available Jobs", timestamp=datetime.utcnow(), color=0x00C3FF)
+      msg = ""
+      for i in range(len(jobs)):
+        msg += f"{jobs[i]['name']}: {jobs[i]['base_salary']} schlucks\n"
+      embedVar.add_field(name="Jobs", value=msg, inline=False)
+      embedVar.add_field(name="\u200b", value="Do `s!work <job>` to select a job!")
+      await ctx.reply(embed=embedVar)
+      return 0
+    if(str(params[0]).lower() in job_list):
+      for i in range(len(profiles)):
+        for j in range(len(job_list)):
+          if(jobs[j]['name'] == str(params[0]).lower()):
+            job_index = j
+        if(profiles[i]['ID'] == ctx.author.id):
+          if(profiles[i]['Job'] == ""):
+            profiles[i]['Job'] = str(params[0]).lower()
+            profiles[i]['Salary'] = jobs[job_index]['base_salary']
+            await ctx.reply(f"You are now working as a `{str(params[0]).lower()}`! Do `s!work` to start working and making schlucks!")
+            with open('profiles.json', 'w') as json_file:
+              json.dump(profiles, json_file)
+            return 0
+          else:
+            await ctx.reply(f"You're already working as a {profiles[i]['Job']}! Please do `s!work resign` to choose a new job.")
+            return 0
+    if(str(params[0]).lower() == "resign"):
+      for i in range(len(profiles)):
+        if(profiles[i]['ID'] == ctx.author.id):
+          if(profiles[i]['Job'] != ""):
+            old_job = profiles[i]['Job']
+            profiles[i]['Job'] = ""
+            profiles[i]['Salary'] = 0
+            await ctx.reply(f"You have resigned from your job as a `{old_job}`! Select a new job from `s!work list` to start working again!")
+            with open('profiles.json', 'w') as json_file:
+              json.dump(profiles, json_file)
+            return 0
+          else:
+            await ctx.reply(f"You're already don't have a job! Select a job fron `s!work list`!")
+            return 0
+  except IndexError:
+    var = 0
+  for i in range(len(profiles)):
+    if(profiles[i]['ID'] == ctx.author.id):
+      if(profiles[i]['Job'] == ""):
+        await ctx.send("You don't have a job yet! Please choose one at `s!work list`")
+      else:
+        with open(f"work/{profiles[i]['Job']}.json") as f:
+          work_scens = json.load(f)
+        scen = randint(0, len(work_scens)-1)
+        embedVar = discord.Embed(title=f"Work as a {profiles[i]['Job']}", color=0x00C3FF)
+        embedVar.add_field(name=f"**{work_scens[scen]['type']}** - {work_scens[scen]['desc']}", value=f"`{work_scens[scen]['prompt']}`")
+        await ctx.reply(embed=embedVar)
+        attempts = 2
+        def check(msg):
+          return msg.author == ctx.author and msg.channel == msg.channel 
+        while True:
+          try:
+            msg = await bot.wait_for("message", check=check, timeout=90)
+          except asyncio.TimeoutError:
+            await ctx.send(f"Sorry {ctx.author.mention}, you didn't reply in time!")
+            break
+          if msg.content.lower() == work_scens[scen]['answer']:
+            correctEmbed = discord.Embed(color=0x00FF00)
+            correctEmbed.add_field(name="Nice job!", value=f"You've earned {profiles[i]['Salary']} schlucks for working!")
+            profiles[i]['Balance'] += profiles[i]['Salary']
+            await msg.reply(embed=correctEmbed)
+            break
+          else:
+            if(attempts != 0):
+              await msg.reply(f"Incorrect answer. You have {attempts} attempts left")
+              attempts -= 1
+              continue
+            else:
+              profiles[i]['Balance'] += math.floor(int(profiles[i]['Salary'])/3)
+              await msg.reply(f"Incorrect Answer. The correct answer was `{work_scens[scen]['answer']}`. You've earned {math.floor(int(profiles[i]['Salary'])/3)}")
+              break
+  with open('profiles.json', 'w') as json_file:
+    json.dump(profiles, json_file)
+
+@work.error
+async def command_name_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        em = discord.Embed(title=f"You can only work once per hour!",description=f"Try again in {error.retry_after:.2f}s.", color=0xFF0000)
+        await ctx.send(embed=em)
 
 bot.run(TOKEN)

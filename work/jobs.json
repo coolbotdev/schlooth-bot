@@ -1,0 +1,10 @@
+[
+    {
+        "name": "smurf",
+        "base_salary": 10
+    },
+    {
+        "name": "teacher",
+        "base_salary": 10
+    }
+]

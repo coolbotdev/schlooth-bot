@@ -18,6 +18,7 @@ import string
 # import chat_exporter
 # from discord.ext import commands
 # import io
+from discord import Webhook, AsyncWebhookAdapter
 from discord.ext import commands
 from discord_components import DiscordComponents, Button, ButtonStyle, InteractionType
 
@@ -41,10 +42,15 @@ async def on_ready():
 async def pfp(ctx, mention="None"):
   print(f"{ctx.author.name}: {'s!pfp'} "+ str(mention))
   if(mention == "None"):
-	  await ctx.send(ctx.author.avatar_url)
+	  await ctx.send(f'{ctx.author.avatar_url}')
   else:
-    member = await converter.convert(ctx, mention)
-    await ctx.send(member.avatar_url)
+    try:
+      member = await converter.convert(ctx, mention)
+    except discord.ext.commands.errors.MemberNotFound as err:
+      await ctx.send(f'{err}')
+      return 0
+    #member = await converter.convert(ctx, mention)
+    await ctx.send(f'{member.avatar_url}')
 
 @bot.command(name='info', help="Displays information about this bot")
 async def info(ctx, *params): 
@@ -233,7 +239,7 @@ async def profile(ctx, profile="none"):
         isSameUser = 1
         break
     if(isSameUser == 0):
-      profile_data.append({"Name": ctx.author.name, "Tag": str(ctx.author), "Nick": ctx.author.display_name, "ID": ctx.author.id, "Avatar URL": str(ctx.author.avatar_url),"Correct": 0, "Total": 0, "Calc": "True","Table": "True","WorldCorrect": 0, "WorldTotal": 0})
+      profile_data.append({"Name": ctx.author.name, "Tag": str(ctx.author), "Nick": ctx.author.display_name, "ID": ctx.author.id, "Avatar URL": str(ctx.author.avatar_url),"Correct": 0, "Total": 0, "Calc": "True","Table": "True","WorldCorrect": 0, "WorldTotal": 0, "Balance": 0, "Job": "", "Salary": 0, "xp": 0, "level": 1})
       embedVar = discord.Embed(title=f"{ctx.author.name}'s profile",  timestamp=datetime.utcnow(), color=0x00ff00)
       try:
         percent_correct = (profile_data[i]['Correct']/profile_data[i]['Total']) * 100 
@@ -266,7 +272,7 @@ async def regents(ctx, *params):
       found = 1
       found_indices.append(i)
   if(found == 0):
-    profile_data.append({"Name": ctx.author.name, "Tag": str(ctx.author), "Nick": ctx.author.display_name, "ID": ctx.author.id, "Avatar URL": str(ctx.author.avatar_url),"Correct": 0, "Total": 0, "Calc": "True","Table": "True","WorldCorrect": 0, "WorldTotal": 0})
+    profile_data.append({"Name": ctx.author.name, "Tag": str(ctx.author), "Nick": ctx.author.display_name, "ID": ctx.author.id, "Avatar URL": str(ctx.author.avatar_url),"Correct": 0, "Total": 0, "Calc": "True","Table": "True","WorldCorrect": 0, "WorldTotal": 0, "Balance": 0, "Job": "", "Salary": 0, "xp": 0, "level": 1})
     for i in range(len(profile_data)):
       if(profile_data[i]['ID'] == ctx.author.id):
         found = 1
@@ -1086,7 +1092,7 @@ async def settings(ctx, *params):
       found = 1
       found_indices.append(i)
   if(found == 0):
-    profile_data.append({"Name": ctx.author.name, "Tag": str(ctx.author), "Nick": ctx.author.display_name, "ID": ctx.author.id, "Avatar URL": str(ctx.author.avatar_url),"Correct": 0, "Total": 0, "Calc": "True","Table": "True"})
+    profile_data.append({"Name": ctx.author.name, "Tag": str(ctx.author), "Nick": ctx.author.display_name, "ID": ctx.author.id, "Avatar URL": str(ctx.author.avatar_url),"Correct": 0, "Total": 0, "Calc": "True","Table": "True","WorldCorrect": 0, "WorldTotal": 0, "Balance": 0, "Job": "", "Salary": 0, "xp": 0, "level": 1})
     for i in range(len(profile_data)):
       if(profile_data[i]['ID'] == uid):
         found_indices.append(i)
@@ -1159,7 +1165,7 @@ async def world(ctx, *params):
       if(profile_data[i]['ID'] == ctx.author.id):
         found = 1
     if(found == 0):
-      profile_data.append({"Name": ctx.author.name, "Tag": str(ctx.author), "Nick": ctx.author.display_name, "ID": ctx.author.id, "Avatar URL": str(ctx.author.avatar_url),"Correct": 0, "Total": 0, "Calc": "True","Table": "True","WorldCorrect": 0, "WorldTotal": 0})
+      profile_data.append({"Name": ctx.author.name, "Tag": str(ctx.author), "Nick": ctx.author.display_name, "ID": ctx.author.id, "Avatar URL": str(ctx.author.avatar_url),"Correct": 0, "Total": 0, "Calc": "True","Table": "True","WorldCorrect": 0, "WorldTotal": 0, "Balance": 0, "Job": "", "Salary": 0, "xp": 0, "level": 1})
 
     with open('questions/apworld.json') as f:
       questions = json.load(f)
@@ -1380,7 +1386,7 @@ async def china(ctx, *params):
     param += str(thing) + " "
   print(f"{ctx.author.name}: {'s!howchinese'} "+ str(param))
   if(ctx.author.id == 418935684192272384 or ctx.author.id == 547514034027495444 or ctx.author.id == 539240329417588746 or ctx.author.id == 392093056171507713):
-    num = randint(97,100)
+    num = randint(97, 100)
     await ctx.send(f"{ctx.author.mention}, you are {num}% chinese!")
   elif(ctx.author.id == 293416817408475136 or ctx.author.id == 333686255768305664 or ctx.author.id == 369278177404518412):
     num = randint(45, 99)
@@ -1399,7 +1405,7 @@ async def on_message(ctx):
   if ctx.channel.id == 846124225173389322:
     if ctx.content.lower() == "tyler bissoondial is a chad smurf":
         member = ctx.author
-        var = discord.utils.get(ctx.guild.roles, name = "BRONZE LEAGUE PLAYER")
+        var = discord.utils.get(ctx.guild.roles, name = "Worker")
         await member.add_roles(var)
         await ctx.delete()
         chan = get_channel(bot, "verification-logs")
@@ -1540,20 +1546,27 @@ async def bal(ctx, profile="none"):
 
 @bot.command(name="updateprofiles")
 async def update(ctx):
-  with open('profiles.json') as f:
-    profiles = json.load(f)
-  for i in range(len(profiles)):
-    profiles[i]['Balance'] = 0
-  for i in range(len(profiles)):
-    profiles[i]['Job'] = ""
-  for i in range(len(profiles)):
-    profiles[i]['Salary'] = 0
-  with open('profiles.json', 'w') as json_file:
-    json.dump(profiles, json_file)
-  await ctx.reply("Profiles successfully updated!")
+  if(ctx.author.id == 427832149173862400):
+    with open('profiles.json') as f:
+      profiles = json.load(f)
+    for i in range(len(profiles)):
+      profiles[i]['xp'] = 0
+    for i in range(len(profiles)):
+      profiles[i]['level'] = 1
+    with open('profiles.json', 'w') as json_file:
+      json.dump(profiles, json_file)
+    await ctx.reply("Profiles successfully updated!")
+
+@bot.command(name="resetcooldown")
+async def resetcool(ctx):
+  if(ctx.author.id == 427832149173862400):
+    work.reset_cooldown(ctx)
+    await ctx.send("Work cooldown reset!")
+  else:
+    await ctx.send("lol imagine not owning the bot")
 
 @bot.command(name="work", help="work")
-@commands.cooldown(1, 3600, commands.BucketType.user)
+@commands.cooldown(1, 600, commands.BucketType.user)
 async def work(ctx, *params):
   param = ""
   for thing in params:
@@ -1569,7 +1582,6 @@ async def work(ctx, *params):
       for key, value in thing.items():
         if(key == "name"):
           job_list.append(value)
-    print(job_list)
     if(params[0] == "list"):
       embedVar = discord.Embed(title="Currently Available Jobs", timestamp=datetime.utcnow(), color=0x00C3FF)
       msg = ""
@@ -1578,6 +1590,7 @@ async def work(ctx, *params):
       embedVar.add_field(name="Jobs", value=msg, inline=False)
       embedVar.add_field(name="\u200b", value="Do `s!work <job>` to select a job!")
       await ctx.reply(embed=embedVar)
+      work.reset_cooldown(ctx)
       return 0
     if(str(params[0]).lower() in job_list):
       for i in range(len(profiles)):
@@ -1586,14 +1599,21 @@ async def work(ctx, *params):
             job_index = j
         if(profiles[i]['ID'] == ctx.author.id):
           if(profiles[i]['Job'] == ""):
+            if(str(params[0]).lower() == "tyler"):
+              if(ctx.author.id != 293416817408475136):
+                await ctx.reply("You are not chad enough to have this job. Exiting.")
+                work.reset_cooldown(ctx)
+                return 0
             profiles[i]['Job'] = str(params[0]).lower()
             profiles[i]['Salary'] = jobs[job_index]['base_salary']
             await ctx.reply(f"You are now working as a `{str(params[0]).lower()}`! Do `s!work` to start working and making schlucks!")
             with open('profiles.json', 'w') as json_file:
               json.dump(profiles, json_file)
+            work.reset_cooldown(ctx)
             return 0
           else:
             await ctx.reply(f"You're already working as a {profiles[i]['Job']}! Please do `s!work resign` to choose a new job.")
+            work.reset_cooldown(ctx)
             return 0
     if(str(params[0]).lower() == "resign"):
       for i in range(len(profiles)):
@@ -1602,20 +1622,38 @@ async def work(ctx, *params):
             old_job = profiles[i]['Job']
             profiles[i]['Job'] = ""
             profiles[i]['Salary'] = 0
+            profiles[i]['xp'] = 0
+            profiles[i]['level'] = 1
             await ctx.reply(f"You have resigned from your job as a `{old_job}`! Select a new job from `s!work list` to start working again!")
             with open('profiles.json', 'w') as json_file:
               json.dump(profiles, json_file)
+            work.reset_cooldown(ctx)
             return 0
           else:
             await ctx.reply(f"You're already don't have a job! Select a job fron `s!work list`!")
+            work.reset_cooldown(ctx)
             return 0
   except IndexError:
     var = 0
   for i in range(len(profiles)):
     if(profiles[i]['ID'] == ctx.author.id):
       if(profiles[i]['Job'] == ""):
-        await ctx.send("You don't have a job yet! Please choose one at `s!work list`")
+        await ctx.reply("You don't have a job yet! Please choose one at `s!work list`")
+        work.reset_cooldown(ctx)
+        return 0
       else:
+        # check for promotion
+        if(profiles[i]['xp'] > (100 + (profiles[i]['level'] * 1.5))):
+          embedVar = discord.Embed(title="Promotion!", timestamp=datetime.utcnow(), color=0xFFC0CB)
+          embedVar.add_field(name=f"Congratulations {ctx.author.name}! You've been working hard recently and have worked your way up to a promotion!", value=f"Level: **{profiles[i]['level']}** --> **{profiles[i]['level'] + 1}**\nSalary: **{profiles[i]['Salary']} schlucks** --> **{math.floor(profiles[i]['Salary'] * 1.5)} schlucks**")
+          profiles[i]['level'] += 1
+          profiles[i]['xp'] = 0
+          profiles[i]['Salary'] = math.floor(profiles[i]['Salary'] * 1.5)
+          await ctx.reply(embed=embedVar)
+          work.reset_cooldown(ctx)
+          with open('profiles.json', 'w') as json_file:
+            json.dump(profiles, json_file)
+          return 0
         with open(f"work/{profiles[i]['Job']}.json") as f:
           work_scens = json.load(f)
         scen = randint(0, len(work_scens)-1)
@@ -1627,7 +1665,7 @@ async def work(ctx, *params):
           return msg.author == ctx.author and msg.channel == msg.channel 
         while True:
           try:
-            msg = await bot.wait_for("message", check=check, timeout=90)
+            msg = await bot.wait_for("message", check=check, timeout=120)
           except asyncio.TimeoutError:
             await ctx.send(f"Sorry {ctx.author.mention}, you didn't reply in time!")
             break
@@ -1635,6 +1673,8 @@ async def work(ctx, *params):
             correctEmbed = discord.Embed(color=0x00FF00)
             correctEmbed.add_field(name="Nice job!", value=f"You've earned {profiles[i]['Salary']} schlucks for working!")
             profiles[i]['Balance'] += profiles[i]['Salary']
+            xp_given = randint(0, 20)
+            profiles[i]['xp'] += xp_given
             await msg.reply(embed=correctEmbed)
             break
           else:
@@ -1644,7 +1684,7 @@ async def work(ctx, *params):
               continue
             else:
               profiles[i]['Balance'] += math.floor(int(profiles[i]['Salary'])/3)
-              await msg.reply(f"Incorrect Answer. The correct answer was `{work_scens[scen]['answer']}`. You've earned {math.floor(int(profiles[i]['Salary'])/3)}")
+              await msg.reply(f"Incorrect Answer. The correct answer was `{work_scens[scen]['answer']}`. You've earned {math.floor(int(profiles[i]['Salary'])/3)} schlucks for working.")
               break
   with open('profiles.json', 'w') as json_file:
     json.dump(profiles, json_file)
@@ -1652,7 +1692,83 @@ async def work(ctx, *params):
 @work.error
 async def command_name_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
-        em = discord.Embed(title=f"You can only work once per hour!",description=f"Try again in {error.retry_after:.2f}s.", color=0xFF0000)
+        cd = round(error.retry_after)
+        minutes = str(cd // 60)
+        seconds = str(cd % 60)
+        em = discord.Embed(title=f"You can only work once per 10 minutes!",description=f"Try again in {minutes} minutes and {seconds} seconds.", color=0xFF0000)
         await ctx.send(embed=em)
+
+@bot.command(name='amogus')
+async def amogus(ctx):
+  await ctx.send("ඞ"*2000)
+
+@bot.command(name="say")
+async def say(ctx, *params):
+  msg = ' '.join(params)
+  webhooks = await ctx.channel.webhooks()
+  await ctx.message.delete()
+  # print(webhooks)
+  if len(webhooks) == 0:
+    use_hook = await ctx.channel.create_webhook(name="Scloth")
+  else:
+    webhook_times = [webhook.created_at for webhook in webhooks]
+
+    shortest = min(webhook_times)
+    for webhook in webhooks:
+        if webhook.created_at == shortest:
+            use_hook = webhook
+            if(use_hook.user != 'Chemistry Bot#6476'):
+              use_hook = await ctx.channel.create_webhook(name="chem")
+              break
+            else:
+              break
+  if(msg == ""):
+    await ctx.send("No message provided to say!")
+  else:
+    async with aiohttp.ClientSession() as session:
+        # print(use_hook.url)
+        webhook = Webhook.from_url(use_hook.url, adapter=AsyncWebhookAdapter(session))
+        await webhook.send(msg, username=ctx.author.display_name, avatar_url=ctx.author.avatar_url, allowed_mentions=None)
+    # await ctx.send(msg)
+
+@bot.command(name="saym", help="syntax: s!saym <user> <message>")
+async def say(ctx, *params):
+  try:
+    member = await converter.convert(ctx, params[0])
+  except discord.ext.commands.errors.MemberNotFound as err:
+    await ctx.send(f'{err} If the user\'s name is two words, please use quotation marks around their name.')
+    return 0
+  await ctx.message.delete()
+  total_params = params[1:]
+  msg = ' '.join(total_params)
+  webhooks = await ctx.channel.webhooks()
+  # print(webhooks)
+  if len(webhooks) == 0:
+    use_hook = await ctx.channel.create_webhook(name="Scloth")
+  else:
+    webhook_times = [webhook.created_at for webhook in webhooks]
+
+    shortest = min(webhook_times)
+    for webhook in webhooks:
+        if webhook.created_at == shortest:
+            use_hook = webhook
+            if(use_hook.user != 'Chemistry Bot#6476'):
+              use_hook = await ctx.channel.create_webhook(name="chem")
+              break
+            else:
+              break
+  if(msg == ""):
+    await ctx.send("No message provided to say!")
+  else:
+    async with aiohttp.ClientSession() as session:
+        # print(use_hook.url)
+        webhook = Webhook.from_url(use_hook.url, adapter=AsyncWebhookAdapter(session))
+        await webhook.send(msg, username=member.display_name, avatar_url=member.avatar_url, allowed_mentions=None)
+    # await ctx.send(msg)
+
+@bot.command(name="ping")
+async def ping(ctx):
+    await ctx.send(f'{round(bot.latency * 1000)}ms')
+  
 
 bot.run(TOKEN)
